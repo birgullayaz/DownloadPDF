@@ -1,0 +1,10 @@
+@page "/"
+
+<form method="get" action="api/Home/DownloadPdf">
+    <input type="hidden" name="username" value="@username" />
+    <button type="submit" class="btn btn-primary">Download PDF</button>
+</form>
+
+@code {
+    private string username = "birgul"; // Kullanıcı adını kendi mantığınıza göre alın
+}

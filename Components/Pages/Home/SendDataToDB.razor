@@ -1,0 +1,125 @@
+@page "/senddatatodb"
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+
+<PageTitle>Send Data</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">User Registration</h3>
+                    
+                    <EditForm Model="@userModel" OnValidSubmit="@HandleSubmit" Method="post">
+                        
+                        <DataAnnotationsValidator />
+                        
+                        <div class="form-group mb-3">
+                            <label for="username">Username:</label>
+                            <InputText id="username" class="form-control" @bind-Value="userModel.Username" />
+                            <ValidationMessage For="@(() => userModel.Username)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </EditForm>
+
+                    @if (!string.IsNullOrEmpty(message))
+                    {
+                        <div class="alert @alertClass mt-3" role="alert">
+                            @message
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <h4>Users List</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Age</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.Id</td>
+                    <td>@user.Name</td>
+                    <td>@user.Email</td>
+                    <td>@user.Age</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private UserModel userModel = new();
+    private string message = string.Empty;
+    private string alertClass = string.Empty;
+    private List<dynamic> users = new();
+
+    private class UserModel
+    {
+        [Required(ErrorMessage = "Username is required")]
+        public string Username { get; set; } = string.Empty;
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            // Create form data with username
+            var formData = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("username", userModel.Username)
+            });
+
+            // Send POST request with proper content type
+            var response = await Http.PostAsync("api/Home/SendDataToDB", formData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "User data saved successfully to SecondUsers table!";
+                alertClass = "alert-success";
+                userModel.Username = string.Empty; // Clear the form
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                message = $"Error saving data to SecondUsers table: {errorMessage}";
+                alertClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"An error occurred while saving to Secondusers table: {ex.Message}";
+            alertClass = "alert-danger";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<List<dynamic>>("api/Home/GetUsers");
+            if (response != null)
+            {
+                users = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error loading users: {ex.Message}";
+            alertClass = "alert-danger";
+        }
+    }
+}
